@@ -254,3 +254,24 @@
   border-radius: 4px;
   box-shadow: 0 6px 14px -6px rgba(125,29,45,.5);
 }
+
+/* ---------- portfolio slide animation ---------- */
+@keyframes portfolio-slide-in {
+  from { opacity: 0; transform: translateX(var(--slide-from, 60px)); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.portfolio-slide {
+  animation: portfolio-slide-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes portfolio-card-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.portfolio-card-in {
+  animation: portfolio-card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portfolio-slide, .portfolio-card-in { animation: none !important; }
+}

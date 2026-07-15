@@ -10,7 +10,7 @@ export type TitleParts = { pre: string; em: string; post: string };
 
 export type KeunggulanItem = { title: string; desc: string };
 export type FiturItem = { title: string; desc: string };
-export type PortfolioItem = { title: string; cat: string; date: string; link: string; price: string; image?: string };
+export type PortfolioItem = { title: string; cat: string; link: string; price: string; priceOriginal?: string; image?: string, badge?: string };
 export type ProcessStep = { n: string; title: string; desc: string };
 export type TestimoniItem = { text: string; name: string; meta: string; image?: string };
 export type FAQItem = { q: string; 
@@ -151,7 +151,7 @@ export const DEFAULT_CONTENT: SiteContent = {
       { title: "Desain Elegan & Beragam", desc: "Pilihan desain modern, minimalis, hingga premium yang dapat disesuaikan dengan tema pernikahan." },
       { title: "Bebas Custom Nama & Foto", desc: "Personalisasi nama tamu, foto prewedding, dan berbagai elemen lainnya sesuai kebutuhan." },
       { title: "Harga Terjangkau", desc: "Dapatkan undangan digital premium dengan harga yang ramah di kantong." },
-      { title: "Pengerjaan Cepat", desc: "Proses mudah, cepat, dan didampingi tim support yang responsif." },
+      { title: "Proses Mudah", desc: "Proses mudah dan didampingi tim support yang responsif." },
       { title: "Gratis Revisi Sampai Hari H", desc: "Tidak perlu khawatir jika ada perubahan data atau detail acara." },
       { title: "Tools Sebar Undangan Instan", desc: "Fitur khusus untuk membantu mengirim undangan ke banyak tamu secara lebih efisien." },
     ],
@@ -175,11 +175,11 @@ export const DEFAULT_CONTENT: SiteContent = {
     subtitle: "Ratusan undangan digital yang telah kami rancang untuk pasangan istimewa di seluruh Indonesia.",
     cats: ["Semua", "Elegant", "Monochrome", "Doodle", "Flowy", "Ethnic"],
     items: [
-      { title: "Elegant Maroon", cat: "Elegant", date: "Jan 2026", link:"https://sambutin.id/maroon-hijau/", price: "Mulai 79"},
-      { title: "Monochrome-1", cat: "Monochrome", date: "Jan 2026", link:"https://sambutin.id/kl-monochrome-1/", price: "Mulai 79" },
-      { title: "Doodle-1", cat: "Doodle", date: "Jan 2026", link:"https://sambutin.id/doodle1/" , price: "Mulai 79"},
-      { title: "Green", cat: "Flowy", date: "Jan 2026", link:"https://sambutin.id/green-flowy/", price: "Mulai 79" },
-      { title: "Jawa", cat: "Ethnic", date: "Jan 2026", link:"https://sambutin.id/jawa-1/", price: "Mulai 79" },
+      { title: "Elegant Maroon", cat: "Elegant", link:"https://sambutin.id/maroon-hijau/", price: "79 K"},
+      { title: "Monochrome-1", cat: "Monochrome", link:"https://sambutin.id/kl-monochrome-1/", price: "79 K" },
+      { title: "Doodle-1", cat: "Doodle", link:"https://sambutin.id/doodle1/" , price: "79 K"},
+      { title: "Green", cat: "Flowy", link:"https://sambutin.id/green-flowy/", price: "79 K" },
+      { title: "Jawa", cat: "Ethnic",  link:"https://sambutin.id/jawa-1/", price: "79 K" },
     ],
     ctaLabel: "Lihat Semua Portfolio",
   },
@@ -199,7 +199,7 @@ export const DEFAULT_CONTENT: SiteContent = {
    note: "Harga sewaktu-waktu dapat berubah. Konsultasikan via WhatsApp untuk penawaran terbaik.",  },
 
   process: {
-    eyebrow: "Proses",
+    eyebrow: "",
     title: { pre: "Proses yang Mudah dan ", em: "Cepat", post: "" },
     subtitle: "Empat langkah sederhana, undangan digital impian sudah siap Anda bagikan.",
     steps: [
@@ -222,7 +222,6 @@ export const DEFAULT_CONTENT: SiteContent = {
     stats: [
       { icon: "Star", label: "4.9/5 Rating" },
       { icon: "Mail", label: "500+ Undangan" },
-      { icon: "Repeat", label: "80% Repeat Client" },
       { icon: "Rocket", label: "Respon Cepat" },
     ],
   },
@@ -327,9 +326,11 @@ export const DEFAULT_CONTENT: SiteContent = {
 /* ============================================================
    Storage + reactive subscription
    ============================================================ */
+import { supabase } from "@/integrations/supabase/client";
 
 const STORAGE_KEY = "sambutin:content:v1";
 const EVENT = "sambutin:content:change";
+const ROW_ID = "main";
 
 function deepMerge<T>(base: T, override: any): T {
   if (Array.isArray(base)) return (override ?? base) as T;
@@ -345,7 +346,7 @@ function deepMerge<T>(base: T, override: any): T {
   return (override ?? base) as T;
 }
 
-function readFromStorage(): SiteContent {
+function readFromCache(): SiteContent {
   if (typeof window === "undefined") return DEFAULT_CONTENT;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -355,19 +356,75 @@ function readFromStorage(): SiteContent {
     return DEFAULT_CONTENT;
   }
 }
+function writeCache(next: SiteContent) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {}
+}
 
 let cached: SiteContent = DEFAULT_CONTENT;
 let initialised = false;
+let remoteLoaded = false;
+
+function setCached(next: SiteContent, persistCache = true) {
+  cached = next;
+  initialised = true;
+  if (persistCache) writeCache(next);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(EVENT));
+  }
+}
+
+async function loadFromRemote() {
+  try {
+    const { data, error } = await supabase
+      .from("site_content")
+      .select("data")
+      .eq("id", ROW_ID)
+      .maybeSingle();
+    if (error) throw error;
+    if (data?.data) {
+      setCached(deepMerge(DEFAULT_CONTENT, data.data));
+    } else {
+      // Seed the row with defaults so future updates are UPDATEs.
+      await supabase
+        .from("site_content")
+        .insert({ id: ROW_ID, data: DEFAULT_CONTENT as any });
+      setCached(DEFAULT_CONTENT);
+    }
+    remoteLoaded = true;
+  } catch (err) {
+    console.error("[content-store] loadFromRemote failed", err);
+  }
+}
 
 function ensureInit() {
-  if (!initialised && typeof window !== "undefined") {
-    cached = readFromStorage();
-    initialised = true;
-  }
+  if (initialised) return;
+  cached = readFromCache();
+  initialised = true;
+
+  if (typeof window === "undefined") return;
+
+  loadFromRemote();
+
+  // Realtime sync across tabs / devices.
+  supabase
+    .channel("site_content_changes")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "site_content", filter: `id=eq.${ROW_ID}` },
+      (payload: any) => {
+        const next = payload?.new?.data;
+        if (next) setCached(deepMerge(DEFAULT_CONTENT, next), true);
+      },
+    )
+    .subscribe();
 }
 
 function subscribe(cb: () => void) {
   if (typeof window === "undefined") return () => {};
+  ensureInit();
   const handler = () => cb();
   window.addEventListener(EVENT, handler);
   window.addEventListener("storage", handler);
@@ -389,23 +446,35 @@ export function useContent(): SiteContent {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
-export function saveContent(next: SiteContent) {
-  cached = next;
-  initialised = true;
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    window.dispatchEvent(new Event(EVENT));
+export async function saveContent(next: SiteContent) {
+  setCached(next);
+  try {
+    const { error } = await supabase
+      .from("site_content")
+      .upsert({ id: ROW_ID, data: next as any }, { onConflict: "id" });
+    if (error) throw error;
+  } catch (err) {
+    console.error("[content-store] saveContent failed", err);
+    throw err;
   }
 }
 
-export function resetContent() {
-  cached = DEFAULT_CONTENT;
-  initialised = true;
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(STORAGE_KEY);
-    window.dispatchEvent(new Event(EVENT));
+export async function resetContent() {
+  setCached(DEFAULT_CONTENT);
+  try {
+    const { error } = await supabase
+      .from("site_content")
+      .upsert({ id: ROW_ID, data: DEFAULT_CONTENT as any }, { onConflict: "id" });
+    if (error) throw error;
+  } catch (err) {
+    console.error("[content-store] resetContent failed", err);
+    throw err;
   }
 }
+export function isContentLoaded() {
+  return remoteLoaded;
+}
+
 
 /* Helpers */
 export function waLink(content: SiteContent, msg?: string) {
