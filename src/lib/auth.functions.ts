@@ -50,7 +50,7 @@ export const changeAdminPassword = createServerFn({ method: "POST" })
           autoRefreshToken: false,
           storage: undefined,
         },
-      }
+      },
     );
 
     const { error: signInError } = await verifier.auth.signInWithPassword({
@@ -63,16 +63,11 @@ export const changeAdminPassword = createServerFn({ method: "POST" })
     }
 
     // Update password using Admin API
-    const { supabaseAdmin } = await import(
-      "@/integrations/supabase/client.server"
-    );
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(
-      context.userId,
-      {
-        password: data.newPassword,
-      }
-    );
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(context.userId, {
+      password: data.newPassword,
+    });
 
     if (error) {
       throw new Error(error.message);
