@@ -650,7 +650,8 @@ function Portfolio({ content }: { content: SiteContent }) {
 
                     {it.badge && <PortfolioBadge label={it.badge} />}
                   </div>
-                  <figcaption className="flex items-end justify-between gap-3 px-1 pt-4">
+=======
+                   <figcaption className="flex items-end justify-between gap-3 px-1 pt-4">
                 <div>
                   <p className="font-serif text-xl leading-tight">{it.title}</p>
                   <p className="text-xs text-muted-foreground mt-1">{it.cat}</p>
