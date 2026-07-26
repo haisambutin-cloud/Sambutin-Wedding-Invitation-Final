@@ -239,7 +239,7 @@ export const DEFAULT_CONTENT: SiteContent = {
       { title: "ELG-007", cat: "Elegant", link: "https://sambutin.id/kl-elegant-2/", price: "99K", priceOriginal: "149K", },
       { title: "ELG-008", cat: "Elegant", link: "https://sambutin.id/kl-pearl/", price: "99K", priceOriginal: "149K", },
     ],
-    ctaLabel: "Lihat Semua Portfolio",
+    ctaLabel: "Pesan Undangan Sekarang",
   },
 
   addon: {
