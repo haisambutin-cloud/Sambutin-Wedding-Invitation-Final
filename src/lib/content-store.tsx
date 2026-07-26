@@ -146,13 +146,13 @@ export const DEFAULT_CONTENT: SiteContent = {
     subtitle:
       "Website undangan pernikahan premium yang elegan, interaktif, dan mudah dibagikan kepada seluruh tamu Anda.",
     primaryCta: "Pesan via WhatsApp",
-    secondaryCta: "Lihat Demo",
+    secondaryCta: "Lihat Katalog",
     badges: [
-      "RSVP Online",
       "Unlimited Tamu",
-      "Amplop Digital",
-      "Mobile Friendly",
+      "All in Fitur Undangan",
       "Custom Nama Tamu",
+      "Revisi Sepuasnya",
+      "Mobile Friendly",
     ],
   },
   keunggulan: {
@@ -213,28 +213,31 @@ export const DEFAULT_CONTENT: SiteContent = {
       { title: "RSVP", desc: "Konfirmasi kehadiran tamu secara otomatis dan lebih terorganisir." },
     ],
   },
-  portfolio: {
+    portfolio: {
     eyebrow: "",
     title: { pre: "Katalog ", em: "Undangan", post: "" },
     subtitle:
-      "Ratusan undangan digital yang telah kami rancang untuk pasangan istimewa di seluruh Indonesia.",
-    cats: ["Semua", "Elegant", "Monochrome", "Doodle", "Flowy", "Ethnic"],
+      "Setiap desain dipilih untuk menyempurnakan momen yang tak terlupakan.",
+    cats: ["Semua", "Elegant", "Timeless", "Doodle", "Flowy", "Ethnic"],
     items: [
       {
-        title: "Elegant Maroon",
+        title: "ELG-001",
         cat: "Elegant",
-        link: "https://sambutin.id/maroon-hijau/",
-        price: "79 K",
+        link: "https://sambutin.id/kl-lovely-2/",
+        price: "79K",
+        priceOriginal: "129K",
       },
       {
-        title: "Monochrome-1",
-        cat: "Monochrome",
-        link: "https://sambutin.id/kl-monochrome-1/",
-        price: "79 K",
+        title: "ELG-001",
+        cat: "Elegant",
+        link: "https://sambutin.id/maroon-hijau/",
+        price: "79K",
+        priceOriginal: "129K",
       },
-      { title: "Doodle-1", cat: "Doodle", link: "https://sambutin.id/doodle1/", price: "79 K" },
-      { title: "Green", cat: "Flowy", link: "https://sambutin.id/green-flowy/", price: "79 K" },
-      { title: "Jawa", cat: "Ethnic", link: "https://sambutin.id/jawa-1/", price: "79 K" },
+      { title: "ELG-005", cat: "Elegant", link: "https://sambutin.id/elegant-3/", price: "79K", priceOriginal: "149K", },
+      { title: "ELG-006", cat: "Elegant", link: "https://sambutin.id/elegant-pink/", price: "99K", priceOriginal: "149K", },
+      { title: "ELG-007", cat: "Elegant", link: "https://sambutin.id/kl-elegant-2/", price: "99K", priceOriginal: "149K", },
+      { title: "ELG-008", cat: "Elegant", link: "https://sambutin.id/kl-pearl/", price: "99K", priceOriginal: "149K", },
     ],
     ctaLabel: "Lihat Semua Portfolio",
   },
@@ -470,49 +473,35 @@ export const DEFAULT_CONTENT: SiteContent = {
    ============================================================ */
 import { supabase } from "@/integrations/supabase/client";
 
-const STORAGE_KEY = "sambutin:content:v1";
 const EVENT = "sambutin:content:change";
 const ROW_ID = "main";
 
 function deepMerge<T>(base: T, override: any): T {
   if (Array.isArray(base)) return (override ?? base) as T;
+
   if (base && typeof base === "object") {
     const out: any = { ...base };
+
     if (override && typeof override === "object") {
       for (const k of Object.keys(override)) {
         out[k] = deepMerge((base as any)[k], override[k]);
       }
     }
+
     return out;
   }
-  return (override ?? base) as T;
-}
 
-function readFromCache(): SiteContent {
-  if (typeof window === "undefined") return DEFAULT_CONTENT;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_CONTENT;
-    return deepMerge(DEFAULT_CONTENT, JSON.parse(raw));
-  } catch {
-    return DEFAULT_CONTENT;
-  }
-}
-function writeCache(next: SiteContent) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } catch {}
+  return (override ?? base) as T;
 }
 
 let cached: SiteContent = DEFAULT_CONTENT;
 let initialised = false;
 let remoteLoaded = false;
 
-function setCached(next: SiteContent, persistCache = true) {
+function setCached(next: SiteContent) {
   cached = next;
   initialised = true;
-  if (persistCache) writeCache(next);
+
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(EVENT));
   }
@@ -524,15 +513,23 @@ async function loadFromRemote() {
       .from("site_content")
       .select("data")
       .eq("id", ROW_ID)
-      .maybeSingle();
+      .single();
+
     if (error) throw error;
+
     if (data?.data) {
       setCached(deepMerge(DEFAULT_CONTENT, data.data));
     } else {
-      // Seed the row with defaults so future updates are UPDATEs.
-      await supabase.from("site_content").insert({ id: ROW_ID, data: DEFAULT_CONTENT as any });
+      await supabase
+        .from("site_content")
+        .insert({
+          id: ROW_ID,
+          data: DEFAULT_CONTENT as any,
+        });
+
       setCached(DEFAULT_CONTENT);
     }
+
     remoteLoaded = true;
   } catch (err) {
     console.error("[content-store] loadFromRemote failed", err);
@@ -541,22 +538,29 @@ async function loadFromRemote() {
 
 function ensureInit() {
   if (initialised) return;
-  cached = readFromCache();
+
   initialised = true;
 
   if (typeof window === "undefined") return;
 
   loadFromRemote();
 
-  // Realtime sync across tabs / devices.
   supabase
     .channel("site_content_changes")
     .on(
       "postgres_changes",
-      { event: "*", schema: "public", table: "site_content", filter: `id=eq.${ROW_ID}` },
+      {
+        event: "*",
+        schema: "public",
+        table: "site_content",
+        filter: `id=eq.${ROW_ID}`,
+      },
       (payload: any) => {
         const next = payload?.new?.data;
-        if (next) setCached(deepMerge(DEFAULT_CONTENT, next), true);
+
+        if (next) {
+          setCached(deepMerge(DEFAULT_CONTENT, next));
+        }
       },
     )
     .subscribe();
@@ -564,13 +568,15 @@ function ensureInit() {
 
 function subscribe(cb: () => void) {
   if (typeof window === "undefined") return () => {};
+
   ensureInit();
+
   const handler = () => cb();
+
   window.addEventListener(EVENT, handler);
-  window.addEventListener("storage", handler);
+
   return () => {
     window.removeEventListener(EVENT, handler);
-    window.removeEventListener("storage", handler);
   };
 }
 
@@ -578,20 +584,35 @@ function getSnapshot(): SiteContent {
   ensureInit();
   return cached;
 }
+
 function getServerSnapshot(): SiteContent {
   return DEFAULT_CONTENT;
 }
 
 export function useContent(): SiteContent {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
 }
 
 export async function saveContent(next: SiteContent) {
   setCached(next);
+
   try {
     const { error } = await supabase
       .from("site_content")
-      .upsert({ id: ROW_ID, data: next as any }, { onConflict: "id" });
+      .upsert(
+        {
+          id: ROW_ID,
+          data: next as any,
+        },
+        {
+          onConflict: "id",
+        },
+      );
+
     if (error) throw error;
   } catch (err) {
     console.error("[content-store] saveContent failed", err);
@@ -601,16 +622,27 @@ export async function saveContent(next: SiteContent) {
 
 export async function resetContent() {
   setCached(DEFAULT_CONTENT);
+
   try {
     const { error } = await supabase
       .from("site_content")
-      .upsert({ id: ROW_ID, data: DEFAULT_CONTENT as any }, { onConflict: "id" });
+      .upsert(
+        {
+          id: ROW_ID,
+          data: DEFAULT_CONTENT as any,
+        },
+        {
+          onConflict: "id",
+        },
+      );
+
     if (error) throw error;
   } catch (err) {
     console.error("[content-store] resetContent failed", err);
     throw err;
   }
 }
+
 export function isContentLoaded() {
   return remoteLoaded;
 }
