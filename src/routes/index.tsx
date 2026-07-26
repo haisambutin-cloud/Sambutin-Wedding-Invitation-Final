@@ -702,7 +702,7 @@ function Portfolio({ content }: { content: SiteContent }) {
           <a
             href={waLink(
               content,
-              "Halo Sambutin.id, saya ingin melihat portfolio lengkap undangan digital.",
+              "Halo Kak, saya ingin pesan undangan digitalnya.",
             )}
             target="_blank"
             rel="noreferrer"
@@ -767,7 +767,7 @@ function AddOn({ content }: { content: SiteContent }) {
           <a
             href={waLink(
               content,
-              "Halo Sambutin.id, saya ingin tahu lebih lanjut tentang Add On undangan digital.",
+              "Halo Kak, saya ingin pesan undangan digitalnya.",
             )}
             target="_blank"
             rel="noreferrer"
@@ -1045,7 +1045,7 @@ function Kontak({ content }: { content: SiteContent }) {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const text =
-      `Halo Sambutin.id, saya ingin konsultasi undangan digital.\n\n` +
+      `Halo Kak, saya ingin pesan undangan digitalnya.\n\n` +
       `Nama: ${form.name}\nNo. WhatsApp: ${form.phone}\nTanggal Acara: ${form.date}\n\nPesan:\n${form.message}`;
     window.open(waLink(content, text), "_blank");
   };
