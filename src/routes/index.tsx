@@ -95,6 +95,16 @@ const TESTI_DECOR = [
 
 function LandingPage() {
   const content = useContent();
+  if (!content) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <div className="h-8 w-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          <p className="text-sm font-serif italic">Memuat konten…</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div id="beranda" className="relative min-h-screen overflow-x-hidden">
       <Navbar content={content} />

@@ -66,7 +66,7 @@ const TABS: { key: TabKey; label: string }[] = [
 function AdminPanel() {
   const navigate = useNavigate();
   const current = useContent();
-  const [draft, setDraft] = useState<SiteContent>(current);
+  const [draft, setDraft] = useState<SiteContent | null>(current);
   const [tab, setTab] = useState<TabKey>("branding");
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -99,17 +99,19 @@ function AdminPanel() {
     navigate({ to: "/auth" });
   };
 
-  // Keep draft in sync if external change happens (e.g. another tab)
+  // Initialize draft once remote content arrives
   useEffect(() => {
-    setDraft(current); /* eslint-disable-next-line */
-  }, []);
+    if (current && !draft) setDraft(current);
+  }, [current, draft]);
 
-  const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(current), [draft, current]);
+
+  const dirty = useMemo(() => !!draft && !!current && JSON.stringify(draft) !== JSON.stringify(current), [draft, current]);
 
   const update = <K extends keyof SiteContent>(key: K, value: SiteContent[K]) =>
-    setDraft((d) => ({ ...d, [key]: value }));
+    setDraft((d) => (d ? { ...d, [key]: value } : d));
 
   const save = () => {
+    if (!draft) return;
     saveContent(draft);
     setSavedAt(Date.now());
     setTimeout(() => setSavedAt(null), 2200);
@@ -123,6 +125,7 @@ function AdminPanel() {
   };
 
   const exportJSON = () => {
+    if (!draft) return;
     const blob = new Blob([JSON.stringify(draft, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -145,10 +148,10 @@ function AdminPanel() {
     };
     reader.readAsText(file);
   };
-  if (!authChecked) {
+   if (!authChecked || !draft) { 
     return (
       <div className="min-h-screen grid place-items-center text-sm text-muted-foreground">
-        Memuat sesi…
+         {!authChecked ? "Memuat sesi…" : "Memuat konten…"}
       </div>
     );
   }
