@@ -14,14 +14,13 @@ import {
   KeyRound,
 } from "lucide-react";
 import * as Icons from "lucide-react";
+import { DEFAULT_CONTENT } from "@/stores/content-defaults";
+import type { SiteContent, TitleParts } from "@/stores/content-types";
 import {
-  DEFAULT_CONTENT,
-  useContent,
+  loadAdminContent,
   saveContent,
   resetContent,
-  type SiteContent,
-  type TitleParts,
-} from "@/lib/content-store";
+} from "@/stores/content-admin";
 import { supabase } from "@/integrations/supabase/client";
 import { changeAdminPassword } from "@/lib/auth.functions";
 
@@ -65,12 +64,50 @@ const TABS: { key: TabKey; label: string }[] = [
 
 function AdminPanel() {
   const navigate = useNavigate();
-  const current = useContent();
-  const [draft, setDraft] = useState<SiteContent | null>(current);
+  const [current, setCurrent] = useState<SiteContent | null>(null);
+  const [draft, setDraft] = useState<SiteContent | null>(null);
   const [tab, setTab] = useState<TabKey>("branding");
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  //Timer Log-Out setelah tidak digunakan//
+
+  const IDLE_TIME = 3 * 60 * 60 * 1000;
+
+useEffect(() => {
+  if (!authChecked) return;
+
+  let timeout: ReturnType<typeof setTimeout>;
+
+  const resetTimer = () => {
+    clearTimeout(timeout);
+
+    timeout = setTimeout(async () => {
+      await supabase.auth.signOut();
+      navigate({ to: "/auth" });
+    }, IDLE_TIME);
+  };
+
+  const events = [
+    "mousemove",
+    "mousedown",
+    "keydown",
+    "scroll",
+    "touchstart",
+  ];
+
+  events.forEach((event) => window.addEventListener(event, resetTimer));
+
+  resetTimer();
+
+  return () => {
+    clearTimeout(timeout);
+    events.forEach((event) =>
+      window.removeEventListener(event, resetTimer)
+    );
+  };
+}, [authChecked, navigate]);
 
   // Auth guard: redirect to /auth if not signed in
   useEffect(() => {
@@ -99,10 +136,30 @@ function AdminPanel() {
     navigate({ to: "/auth" });
   };
 
-  // Initialize draft once remote content arrives
+  // Load Admin content directly from Supabase.
+  // Public content-store is intentionally not used here.
   useEffect(() => {
-    if (current && !draft) setDraft(current);
-  }, [current, draft]);
+    if (!authChecked) return;
+
+    let mounted = true;
+
+    loadAdminContent()
+      .then((content) => {
+        if (!mounted) return;
+        setCurrent(content);
+        setDraft(content);
+      })
+      .catch((error) => {
+        console.error("[admin] Failed to load content:", error);
+        if (mounted) {
+          alert("Gagal memuat konten dari Supabase.");
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [authChecked]);
 
 
   const dirty = useMemo(() => !!draft && !!current && JSON.stringify(draft) !== JSON.stringify(current), [draft, current]);
@@ -110,17 +167,34 @@ function AdminPanel() {
   const update = <K extends keyof SiteContent>(key: K, value: SiteContent[K]) =>
     setDraft((d) => (d ? { ...d, [key]: value } : d));
 
-  const save = () => {
+  const save = async () => {
     if (!draft) return;
-    saveContent(draft);
-    setSavedAt(Date.now());
-    setTimeout(() => setSavedAt(null), 2200);
+
+    try {
+      await saveContent(draft);
+      setCurrent(draft);
+      setSavedAt(Date.now());
+      setTimeout(() => setSavedAt(null), 2200);
+    } catch (error) {
+      console.error("[admin] Failed to save content:", error);
+      alert("Gagal menyimpan konten ke Supabase.");
+    }
   };
 
-  const reset = () => {
-    if (confirm("Reset semua konten ke default? Perubahan akan hilang.")) {
-      resetContent();
+  const reset = async () => {
+    if (!confirm("Reset semua konten ke default? Perubahan akan hilang.")) {
+      return;
+    }
+
+    try {
+      await resetContent();
+      setCurrent(DEFAULT_CONTENT);
       setDraft(DEFAULT_CONTENT);
+      setSavedAt(Date.now());
+      setTimeout(() => setSavedAt(null), 2200);
+    } catch (error) {
+      console.error("[admin] Failed to reset content:", error);
+      alert("Gagal mereset konten.");
     }
   };
 

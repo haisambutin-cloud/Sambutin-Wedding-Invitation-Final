@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "npm run fetch:data && npm run generate:content && vite build",
     "build:dev": "vite build --mode development",
+    "fetch:data": "node scripts/fetch-data.js",
+    "import:data": "node scripts/import-data.js",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "generate:content": "node scripts/generate-content.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -49,6 +52,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.4.2",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.575.0",
