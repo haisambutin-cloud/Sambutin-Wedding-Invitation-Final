@@ -35,6 +35,7 @@ import port2 from "@/assets/Elagant-2.jpeg";
 import port3 from "@/assets/Elegant-3.jpeg";
 import port4 from "@/assets/Elegant-4.jpeg";
 import port5 from "@/assets/Elegant-5.jpeg";
+import port6 from "@/assets/Elegant-6.jpeg";
 import { useContent, waLink, renderTitle, type SiteContent } from "@/stores/content-store";
 import {
   LeafSprig,
@@ -73,7 +74,7 @@ export const Route = createFileRoute("/")({
   component: LandingPage,
 });
 
-const PORTFOLIO_IMAGES = [port1, port2, port3, port4, port5];
+const PORTFOLIO_IMAGES = [port1, port2, port3, port4, port5, port6];
 const KEUNGGULAN_META = [
   { icon: Send, span: "lg:col-span-2", tint: "bg-secondary/50" },
   { icon: Palette, tint: "bg-accent/50" },
