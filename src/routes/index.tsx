@@ -30,11 +30,11 @@ import type { LucideIcon } from "lucide-react";
 import * as Icons from "lucide-react";
 import logo from "@/assets/Sambutin-Header.png";
 import heroImg from "@/assets/Sambutin-Hero-Picture.png";
-import port1 from "@/assets/elegant-1.png";
-import port2 from "@/assets/monochrome-1.png";
-import port3 from "@/assets/doodle-1.png";
-import port4 from "@/assets/flowy-1.png";
-import port5 from "@/assets/jawa-1.png";
+import port1 from "@/assets/Elegant-1.jpeg";
+import port2 from "@/assets/Elagant-2.jpeg";
+import port3 from "@/assets/Elegant-3.jpeg";
+import port4 from "@/assets/Elegant-4.jpeg";
+import port5 from "@/assets/Elegant-5.jpeg";
 import { useContent, waLink, renderTitle, type SiteContent } from "@/stores/content-store";
 import {
   LeafSprig,
