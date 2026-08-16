@@ -73,7 +73,7 @@ export const Route = createFileRoute("/")({
   component: LandingPage,
 });
 
-const PORTFOLIO_IMAGES = [port1, port2, port3, port4, port5, port6];
+const PORTFOLIO_IMAGES = [port1, port2, port3, port4, port5];
 const KEUNGGULAN_META = [
   { icon: Send, span: "lg:col-span-2", tint: "bg-secondary/50" },
   { icon: Palette, tint: "bg-accent/50" },
